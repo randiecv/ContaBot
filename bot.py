@@ -123,7 +123,7 @@ def conectar_google_sheets():
         return None
 
 # Comandos
-def start_command(update: Update, context: CallbackContext) -> int: # Renombrado para evitar conflicto con main.py/start
+async def start_command(update: Update, context: CallbackContext) -> int: # Renombrado para evitar conflicto con main.py/start
     user = update.effective_user
     keyboard = [
         [InlineKeyboardButton("Registrar movimiento", callback_data='registrar')],
@@ -131,7 +131,7 @@ def start_command(update: Update, context: CallbackContext) -> int: # Renombrado
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    update.message.reply_text(
+    await update.message.reply_text(
         f'Hola {user.first_name}! Soy el bot de economía familiar.\n\n'
         f'¿Qué deseas hacer?',
         reply_markup=reply_markup
@@ -139,9 +139,9 @@ def start_command(update: Update, context: CallbackContext) -> int: # Renombrado
     
     return ELEGIR_ACCION
 
-def elegir_accion(update: Update, context: CallbackContext) -> int:
+async def elegir_accion(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     
     if query.data == 'registrar':
         # Inicializar datos del usuario
@@ -152,7 +152,7 @@ def elegir_accion(update: Update, context: CallbackContext) -> int:
         keyboard = [[InlineKeyboardButton(tipo, callback_data=tipo)] for tipo in TIPOS]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        query.edit_message_text(
+        await query.edit_message_text(
             text="¿Qué tipo de movimiento quieres registrar?",
             reply_markup=reply_markup
         )
@@ -167,7 +167,7 @@ def elegir_accion(update: Update, context: CallbackContext) -> int:
                 records = sheet.get_all_records()
                 if records:
                     last_record = records[-1]
-                    query.edit_message_text(
+                    await query.edit_message_text(
                         f"📝 *Último registro*\n\n"
                         f"📅 Fecha: {last_record.get('Fecha', 'N/A')}\n"
                         f"👤 Usuario: {last_record.get('Usuario', 'N/A')}\n"
@@ -178,17 +178,17 @@ def elegir_accion(update: Update, context: CallbackContext) -> int:
                         parse_mode='Markdown'
                     )
                 else:
-                    query.edit_message_text("No hay registros disponibles.")
+                    await query.edit_message_text("No hay registros disponibles.")
             else:
-                query.edit_message_text("No se pudo conectar con la hoja de cálculo.")
+                await query.edit_message_text("No se pudo conectar con la hoja de cálculo.")
         except Exception as e:
-            query.edit_message_text(f"Error al obtener el último registro: {e}")
+            await query.edit_message_text(f"Error al obtener el último registro: {e}")
         
         return ConversationHandler.END
 
-def elegir_tipo(update: Update, context: CallbackContext) -> int:
+async def elegir_tipo(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     
     tipo = query.data
     usuario_data[query.from_user.id]['tipo'] = tipo
@@ -196,16 +196,16 @@ def elegir_tipo(update: Update, context: CallbackContext) -> int:
     keyboard = [[InlineKeyboardButton(categoria, callback_data=categoria)] for categoria in CATEGORIAS]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    query.edit_message_text(
+    await query.edit_message_text(
         text=f"Has seleccionado: {tipo}\n\n¿Es un {tipo.lower()} fijo o variable?",
         reply_markup=reply_markup
     )
     
     return ELEGIR_CATEGORIA
 
-def elegir_categoria(update: Update, context: CallbackContext) -> int:
+async def elegir_categoria(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     
     categoria = query.data
     usuario_data[query.from_user.id]['categoria'] = categoria
@@ -224,33 +224,33 @@ def elegir_categoria(update: Update, context: CallbackContext) -> int:
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    query.edit_message_text(
+    await query.edit_message_text(
         text=f"Has seleccionado: {categoria}\n\nSelecciona el concepto:",
         reply_markup=reply_markup
     )
     
     return ELEGIR_CONCEPTO
 
-def elegir_concepto(update: Update, context: CallbackContext) -> int:
+async def elegir_concepto(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     
     concepto = query.data
     usuario_data[query.from_user.id]['concepto'] = concepto
     
-    query.edit_message_text(
+    await query.edit_message_text(
         text=f"Has seleccionado: {concepto}\n\nPor favor, ingresa el monto (solo números):"
     )
     
     return INGRESAR_MONTO
 
-def ingresar_monto(update: Update, context: CallbackContext) -> int:
+async def ingresar_monto(update: Update, context: CallbackContext) -> int:
     try:
         monto = float(update.message.text.replace(',', '.'))
         user_id = update.effective_user.id
         
         if monto <= 0:
-            update.message.reply_text("El monto debe ser mayor que cero. Por favor, ingresa un monto válido:")
+            await update.message.reply_text("El monto debe ser mayor que cero. Por favor, ingresa un monto válido:")
             return INGRESAR_MONTO
         
         usuario_data[user_id]['monto'] = monto
@@ -262,7 +262,7 @@ def ingresar_monto(update: Update, context: CallbackContext) -> int:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        update.message.reply_text(
+        await update.message.reply_text(
             f"📝 *Resumen del registro*\n\n"
             f"👤 Usuario: {usuario_data[user_id]['usuario']}\n"
             f"📊 Tipo: {usuario_data[user_id]['tipo']}\n"
@@ -277,12 +277,12 @@ def ingresar_monto(update: Update, context: CallbackContext) -> int:
         return CONFIRMAR
     
     except ValueError:
-        update.message.reply_text("Por favor, ingresa solo números (usa punto o coma para decimales):")
+        await update.message.reply_text("Por favor, ingresa solo números (usa punto o coma para decimales):")
         return INGRESAR_MONTO
 
-def confirmar(update: Update, context: CallbackContext) -> int:
+async def confirmar(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
-    query.answer()
+    await query.answer()
     
     if query.data == 'confirmar':
         user_id = query.from_user.id
@@ -305,15 +305,15 @@ def confirmar(update: Update, context: CallbackContext) -> int:
                     mes
                 ])
                 
-                query.edit_message_text("✅ Registro completado con éxito.")
+                await query.edit_message_text("✅ Registro completado con éxito.")
             else:
-                query.edit_message_text("❌ No se pudo conectar con la hoja de cálculo.")
+                await query.edit_message_text("❌ No se pudo conectar con la hoja de cálculo.")
         
         except Exception as e:
-            query.edit_message_text(f"❌ Error al guardar el registro: {e}")
+            await query.edit_message_text(f"❌ Error al guardar el registro: {e}")
     
     else:  # cancelar
-        query.edit_message_text("❌ Registro cancelado.")
+        await query.edit_message_text("❌ Registro cancelado.")
     
     # Limpiar datos
     if user_id in usuario_data:
@@ -321,7 +321,7 @@ def confirmar(update: Update, context: CallbackContext) -> int:
     
     return ConversationHandler.END
 
-def registrar_por_texto(update: Update, context: CallbackContext) -> None:
+async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
     """Procesa mensajes de texto con formato: TIPO MONTO CONCEPTO"""
     text = update.message.text.upper()
     user = update.effective_user
@@ -331,7 +331,7 @@ def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         
         # Verificar si el formato es correcto
         if len(parts) < 3:
-            update.message.reply_text(
+            await update.message.reply_text(
                 "❌ Formato incorrecto. Usa: TIPO MONTO CONCEPTO\n"
                 "Ejemplo: GASTO 50 ALIMENTOS"
             )
@@ -339,16 +339,16 @@ def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         
         tipo = parts[0]
         if tipo not in TIPOS:
-            update.message.reply_text(f"❌ El tipo debe ser INGRESO o GASTO. Recibido: {tipo}")
+            await update.message.reply_text(f"❌ El tipo debe ser INGRESO o GASTO. Recibido: {tipo}")
             return
         
         try:
             monto = float(parts[1].replace(',', '.'))
             if monto <= 0:
-                update.message.reply_text("❌ El monto debe ser mayor que cero.")
+                await update.message.reply_text("❌ El monto debe ser mayor que cero.")
                 return
         except ValueError:
-            update.message.reply_text("❌ El monto debe ser un número válido.")
+            await update.message.reply_text("❌ El monto debe ser un número válido.")
             return
         
         # Unir el resto como concepto
@@ -366,7 +366,7 @@ def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         
         if not concepto_encontrado:
             # Si no se encuentra una coincidencia exacta, mostrar opciones
-            update.message.reply_text(
+            await update.message.reply_text(
                 f"❌ No se encontró el concepto '{concepto_texto}'. Por favor, usa el comando /start para registrar."
             )
             return
@@ -399,7 +399,7 @@ def registrar_por_texto(update: Update, context: CallbackContext) -> None:
                 mes
             ])
             
-            update.message.reply_text(
+            await update.message.reply_text(
                 f"✅ Registro rápido completado:\n\n"
                 f"👤 Usuario: {user.first_name}\n"
                 f"📊 Tipo: {tipo}\n"
@@ -408,16 +408,16 @@ def registrar_por_texto(update: Update, context: CallbackContext) -> None:
                 f"💰 Monto: S/. {monto}\n"
             )
         else:
-            update.message.reply_text("❌ No se pudo conectar con la hoja de cálculo.")
+            await update.message.reply_text("❌ No se pudo conectar con la hoja de cálculo.")
     
     except Exception as e:
-        update.message.reply_text(f"❌ Error: {e}")
+        await update.message.reply_text(f"❌ Error: {e}")
 
-def cancelar(update: Update, context: CallbackContext) -> int:
+async def cancelar(update: Update, context: CallbackContext) -> int:
     """Cancela la conversación"""
     user = update.message.from_user
     logger.info(f"Usuario {user.first_name} canceló la conversación.")
-    update.message.reply_text('Operación cancelada. ¡Hasta pronto!')
+    await update.message.reply_text('Operación cancelada. ¡Hasta pronto!')
     
     # Limpiar datos
     if update.effective_user.id in usuario_data:
@@ -425,9 +425,9 @@ def cancelar(update: Update, context: CallbackContext) -> int:
     
     return ConversationHandler.END
 
-def ayuda(update: Update, context: CallbackContext) -> None:
+async def ayuda(update: Update, context: CallbackContext) -> None:
     """Envía un mensaje de ayuda"""
-    update.message.reply_text(
+    await update.message.reply_text(
         "🤖 *Bot de Economía Familiar* 🏡\n\n"
         "*Comandos disponibles:*\n"
         "/start - Iniciar el bot y registrar un movimiento\n"
@@ -441,11 +441,11 @@ def ayuda(update: Update, context: CallbackContext) -> None:
         parse_mode='Markdown'
     )
 
-def error(update: Update, context: CallbackContext) -> None:
+async def error(update: Update, context: CallbackContext) -> None:
     """Maneja errores"""
     logger.warning(f'Update {update} causó el error {context.error}')
     if update.message:
-        update.message.reply_text("Ocurrió un error. Por favor, intenta de nuevo o contacta al administrador.")
+        await update.message.reply_text("Ocurrió un error. Por favor, intenta de nuevo o contacta al administrador.")
 
 def main() -> None:
     """Función principal"""
@@ -507,7 +507,17 @@ def main() -> None:
     # Iniciar el bot con Webhooks
     # Primero, asegúrate de que no haya un webhook antiguo configurado en Telegram
     logger.info("Intentando eliminar cualquier webhook anterior.")
+	# Importante: set_webhook es una coroutine, pero se llama fuera de un async def,
+    # por lo que necesita ser "await" de alguna manera.
+    # En este contexto de main(), que no es async, python-telegram-bot
+    # lo maneja internamente al llamar run_webhook que inicia el bucle de eventos.
+    # Así que, por ahora, no es necesario 'await' aquí directamente.
     application.bot.set_webhook(url=None) # Desactivar webhook si existe uno configurado previamente
+													   
+																	  
+																				  
+																	  
+										 
 
     # Configurar el nuevo webhook con la URL de Render
     # 'listen' debe ser "0.0.0.0" para que Render pueda enrutar el tráfico
