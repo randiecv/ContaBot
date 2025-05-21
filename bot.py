@@ -1,10 +1,14 @@
 import logging
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
+# Importar Application, Request y URLInputFile para usar con webhooks en versiones recientes de python-telegram-bot
+from telegram.ext import Application, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
+# No necesitamos Updater con Application.run_webhook
+# from telegram.ext import Updater
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import os
+import json # Necesario para cargar las credenciales de Google Sheets desde JSON string
 
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -86,7 +90,7 @@ def conectar_google_sheets():
         logger.error("Asegúrate de haber pegado el contenido completo del JSON de la clave de servicio en Render.")
         return None
     
-   try:
+    try:
         # Cargar las credenciales desde la cadena JSON de la variable de entorno
         creds_dict = json.loads(credentials_json_str)
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
@@ -118,7 +122,7 @@ def conectar_google_sheets():
         return None
 
 # Comandos
-def start(update: Update, context: CallbackContext) -> int:
+def start_command(update: Update, context: CallbackContext) -> int: # Renombrado para evitar conflicto con main.py/start
     user = update.effective_user
     keyboard = [
         [InlineKeyboardButton("Registrar movimiento", callback_data='registrar')],
@@ -444,15 +448,39 @@ def error(update: Update, context: CallbackContext) -> None:
 
 def main() -> None:
     """Función principal"""
-    # Configura el token de tu bot
-    TOKEN = "7423212779:AAEek2m6ZHUsZzpMxOhRz8QXpQXr0ldt5Ww"
-    
-    updater = Updater(TOKEN)
-    dispatcher = updater.dispatcher
+    # --- CAMBIOS AQUÍ para configurar Webhooks ---
+
+    # 1. Obtener TOKEN del bot de variables de entorno (OBLIGATORIO para seguridad)
+    TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not TOKEN:
+        logger.error("Error: La variable de entorno TELEGRAM_BOT_TOKEN no está configurada.")
+        logger.error("Por favor, configura tu token de bot de Telegram en Render como una variable de entorno.")
+        # Es crucial que el bot no se inicie sin el token
+        raise ValueError("TELEGRAM_BOT_TOKEN no configurado.")
+
+    # 2. Obtener el puerto que Render asigna a tu aplicación (OBLIGATORIO para Web Services)
+    PORT = int(os.environ.get("PORT", "8080")) # Default a 8080 si no se especifica (aunque Render lo debería dar)
+
+    # 3. Obtener la URL externa de tu servicio en Render (Render la inyecta automáticamente)
+    WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if not WEBHOOK_URL:
+        logger.error("Error: La variable de entorno RENDER_EXTERNAL_URL no está configurada.")
+        logger.error("Asegúrate de que tu servicio en Render sea un 'Web Service'.")
+        raise ValueError("RENDER_EXTERNAL_URL no configurada.")
+
+    # 4. Definir una ruta secreta para el webhook. Se recomienda usar el TOKEN del bot.
+    WEBHOOK_PATH = TOKEN # O puedes usar algo como "mi_ruta_secreta_para_webhook"
+
+    # Construye la aplicación del bot
+    # Si te encuentras con problemas de 'Request' o 'URLInputFile', puedes añadir:
+    # from telegram.request import Request
+    # request = Request(con_proxy=False, pool_timeout=60.0)
+    # application = Application.builder().token(TOKEN).request(request).build()
+    application = Application.builder().token(TOKEN).build()
     
     # Manejador de conversación para el registro de movimientos
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CommandHandler('start', start_command)], # Usar start_command
         states={
             ELEGIR_ACCION: [CallbackQueryHandler(elegir_accion)],
             ELEGIR_TIPO: [CallbackQueryHandler(elegir_tipo)],
@@ -464,20 +492,35 @@ def main() -> None:
         fallbacks=[CommandHandler('cancelar', cancelar)]
     )
     
-    dispatcher.add_handler(conv_handler)
+    application.add_handler(conv_handler) # Añadir a application
     
     # Manejador para registro por texto
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, registrar_por_texto))
+    application.add_handler(MessageHandler(Filters.text & ~Filters.command, registrar_por_texto)) # Añadir a application
     
     # Otros comandos
-    dispatcher.add_handler(CommandHandler("ayuda", ayuda))
+    application.add_handler(CommandHandler("ayuda", ayuda)) # Añadir a application
     
     # Manejador de errores
-    dispatcher.add_error_handler(error)
+    application.add_error_handler(error) # Añadir a application
     
-    # Iniciar el bot
-    updater.start_polling()
-    updater.idle()
+    # Iniciar el bot con Webhooks
+    # Primero, asegúrate de que no haya un webhook antiguo configurado en Telegram
+    logger.info("Intentando eliminar cualquier webhook anterior.")
+    application.bot.set_webhook(url=None) # Desactivar webhook si existe uno configurado previamente
+
+    # Configurar el nuevo webhook con la URL de Render
+    # 'listen' debe ser "0.0.0.0" para que Render pueda enrutar el tráfico
+    # 'port' debe ser el puerto que Render asigna a tu aplicación (desde la variable de entorno)
+    # 'url_path' es la parte final de la URL del webhook, se recomienda que sea secreta (ej. el token)
+    application.run_webhook(
+        listen="0.0.0.0",
+        port=PORT,
+        url_path=WEBHOOK_PATH,
+        webhook_url=f"{WEBHOOK_URL}/{WEBHOOK_PATH}"
+    )
+
+    logger.info(f"Bot iniciado con webhook en: {WEBHOOK_URL}/{WEBHOOK_PATH}")
+    logger.info(f"Escuchando en puerto: {PORT}")
 
 if __name__ == '__main__':
     main()
