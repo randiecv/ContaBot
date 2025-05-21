@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "micontabot",
+  "private_key_id": "b1ae4366502d804886c2ce306af9a4c6edc7f1b3",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQD0wuAaVg9kVhNm\ntka+7LwanwIru/MzK2Dphxh1/ltaL2qqd7G5qfqTsruHY/oIlalCmd8Cb47FNaQa\n390nV8LUpobigl7lWONsX3nNZuh+jvpDkcNwQeglD4rH/dmNk9ljBzxrHzLRgGQ3\nAZ2evUZPGdRa9EOEDKZYvwdsJE/1h/pJJA6g2hsvskLR2/mqPIfoLznX677mYpMj\nyyTinWaV75tx9mBm1OwWkPrxSdo6GI3bwA2pi74g5fzcGFmO7860zPuiJ5GznYqd\nxEn3RdL0DMaTdkmuD7o8++HBrQgMpFNrjBU+IZOJK6sFYt9Tsa98fF8jsbxVhXCo\n5yi4UM0HAgMBAAECggEAAJXJV1wb+U9uCHF9xc28aAvimMbVk/+8jD0Ib+/FuXd3\njSTFcKjZXSpbjGf5cbUkjHDgZERuq5tZ4xPklsgnl76LgABzyEnoG/A2fak1+7zN\nGFrsLq6EUY0HSzxuHV/ccIIp63pNnXaYcWaNlpLj7M3RAM6orVN3v6qP5/rw6Kiu\nBsYo8Z8g0OC0/NsDEKI0ipI7CiyfYJ3pnNY4C2j6damZjZIkyay0CCh591nT/hmK\nFjFaXHop+TLYgPJYESj7EP6zVFYPrIyeqZGk9ey6DkyHwLYRvv+weMNDid8Up3XS\ng+X+GZcZZ1SQNm/heufzmbrfhxW9+tHqParIaDjEYQKBgQD7ocPq3Qmx+qOZqBID\ngYjQ2ezR6oZLKyU1L90yy8ROE+ABXm7dVnSLK9ZJu6YZwg5SD0MmyWgLtFoYxisj\n2aqk9ZIEmZXF9yww7GWdmWJor0ZOK+ag5g2A7irjx6jo15vkkvshTxA1/naehK23\nTpED6OrM/bv+RJDpEhYtUZZ6bwKBgQD5ApPM+RM8iKDa5j++F2AX1FnrFBNkokFZ\ndda33rVcFzTVKubKK1pSb+Pig1IIfBKk0KvtsHBOJ6rhKCZhAOcboAUOZRJS6KBk\nRzNSp2Lm9WIqHt1Ymhayk+DXFVPgOsphI/3kRm+a7vuDyYrOfvm2/Y1WTUfiL6EY\nEVSsakGC6QKBgAQ6Mn1mmzwXNtpk/XB7o53Gm3jnVLw8jFJ5bGDnFXQuV0wOlxQ2\n2Jxh7yar9V1najAsu3cSWSIhNIZIBf+DL5+31G0pW1/JCEAGKKreIc4aa7bye9xm\nIQHyflv3RborrR3I7lkf5+jQTpPZLMXwlvUW26L3/EmIQ1r3B9JZFYsXAoGBAPLA\nknoWr6wpvjbolGeqviE9AVPtRGKs02x1NpgV41Qdw4G0yz14Oht3vP+L6iMfYcWP\nMK0Nfs6SWUIbNB8JFESYIZXA7rYo1oQr7Vq8l+x0d/h8EmlX/pylEWJdBmHornc4\n8UDjcdXm+QenKUzZ+HNuh6UEvflBWZju/E8BX1BRAoGAPo2Dr6l4D/qATn9rs4pP\nv3hCGN0Qhcnmlcj04OZLH+j/6pMok7D+c3ggVfcNalQnmz00Vbn7QgnoyxaGGzW0\n4TX72d0aarhRWxbQ2bcSgV3JLhHVezNBkouZAkZlG8117srt2SpH8w9QsYNZtwLj\nzT+zqvfdhF13SULSDKg4ALI=\n-----END PRIVATE KEY-----\n",
+  "client_email": "micontabot-service@micontabot.iam.gserviceaccount.com",
+  "client_id": "104829751732732535305",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/micontabot-service%40micontabot.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
