@@ -29,45 +29,38 @@ CONCEPTOS_INGRESOS = [
 ]
 
 CONCEPTOS_GASTOS = [
-    "ALQUILER",
+    "CUOTA DEPARTAMENTO",
     "TARJETA DE CREDITO",
     "PLAN DE CELULAR",
     "INTERNET",
     "LUZ",
-    "AGUA",
+    "MANTENIMIENTO",
     "GAS",
-    "RECARGA DE TELEFONOS",
     "PASAJES",
     "GASOLINA/COMBUSTIBLE",
     "DIEZMO",
     "OFRENDA",
-    "MENSUALIDAD DE COLEGIO",
-    "AHORRO FIJO EN BANCO",
+    "AHORROS",
     "ALIMENTOS (DESAYUNO, ALMUERZO, CENA)",
     "ROPA",
-    "CALZADO / ZAPATILLA",
+    "CALZADO / ZAPATILLA / ZAPATO",
     "ARTICULOS DE COCINA",
-    "UTENSILIOS DE LIMPIEZA",
+    "ARTICULOS DE LIMPIEZA",
     "ARTICULO PARA EL HOGAR",
     "COSAS NO NECESARIAS",
     "ARTICULOS DE ASEO PERSONAL",
-    "ARTICULOS DE LIMPIEZA",
     "REGALOS",
-    "TECNOLOGICOS",
+    "TECNOLOGIA",
     "ELECTRODOMESTICOS",
     "CITA MEDICA",
     "GASTOS MEDICOS",
     "MEDICINA / PASTILLAS",
     "SALIDAS",
-    "TARJETA X",
     "LIBROS",
-    "COMIDA DE MASCOTAS",
-    "VETERINARIO",
     "ANIVERSARIO",
     "DONACION",
     "DENTISTA",
-    "VIAJES INTERPROVINCIALES",
-    "COLEGIO DE LOS NIÑOS",
+    "VIAJES / PASEOS",
     "PRESTAMOS"
 ]
 
@@ -375,8 +368,8 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         categoria = "VARIABLE"  # Por defecto
         
         # Algunos conceptos que suelen ser fijos
-        conceptos_fijos = ["ALQUILER", "INTERNET", "LUZ", "AGUA", "GAS", "PLAN DE CELULAR", 
-                         "SUELDO", "MENSUALIDAD", "AHORRO FIJO"]
+        conceptos_fijos = ["CUOTA DEPARTAMENTO", "INTERNET", "LUZ", "MANTENIMIENTO", "GAS", "PLAN DE CELULAR", 
+                         "SUELDO", "AHORROS", "DIEZMO","OFRENDA"]
         
         for cf in conceptos_fijos:
             if cf in concepto_encontrado:
