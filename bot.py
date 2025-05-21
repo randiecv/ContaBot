@@ -487,7 +487,7 @@ def main() -> None:
             ELEGIR_TIPO: [CallbackQueryHandler(elegir_tipo)],
             ELEGIR_CATEGORIA: [CallbackQueryHandler(elegir_categoria)],
             ELEGIR_CONCEPTO: [CallbackQueryHandler(elegir_concepto)],
-            INGRESAR_MONTO: [MessageHandler(filters.text & ~filters.command, ingresar_monto)],
+            INGRESAR_MONTO: [MessageHandler(filters.TEXT & ~filters.COMMAND, ingresar_monto)],
             CONFIRMAR: [CallbackQueryHandler(confirmar)]
         },
         fallbacks=[CommandHandler('cancelar', cancelar)]
@@ -496,7 +496,7 @@ def main() -> None:
     application.add_handler(conv_handler) # Añadir a application
     
     # Manejador para registro por texto
-    application.add_handler(MessageHandler(filters.text & ~filters.command, registrar_por_texto)) # Añadir a application
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, registrar_por_texto)) # Añadir a application
     
     # Otros comandos
     application.add_handler(CommandHandler("ayuda", ayuda)) # Añadir a application
