@@ -1,7 +1,8 @@
 import logging
 from telegram import Update, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
 # Importar Application, Request y URLInputFile para usar con webhooks en versiones recientes de python-telegram-bot
-from telegram.ext import Application, CommandHandler, MessageHandler, Filters, CallbackContext, ConversationHandler, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackContext, ConversationHandler, CallbackQueryHandler
+from telegram.ext import filters # Importa el módulo 'filters' aparte
 # No necesitamos Updater con Application.run_webhook
 # from telegram.ext import Updater
 import gspread
@@ -486,7 +487,7 @@ def main() -> None:
             ELEGIR_TIPO: [CallbackQueryHandler(elegir_tipo)],
             ELEGIR_CATEGORIA: [CallbackQueryHandler(elegir_categoria)],
             ELEGIR_CONCEPTO: [CallbackQueryHandler(elegir_concepto)],
-            INGRESAR_MONTO: [MessageHandler(Filters.text & ~Filters.command, ingresar_monto)],
+            INGRESAR_MONTO: [MessageHandler(filters.text & ~filters.command, ingresar_monto)],
             CONFIRMAR: [CallbackQueryHandler(confirmar)]
         },
         fallbacks=[CommandHandler('cancelar', cancelar)]
@@ -495,7 +496,7 @@ def main() -> None:
     application.add_handler(conv_handler) # Añadir a application
     
     # Manejador para registro por texto
-    application.add_handler(MessageHandler(Filters.text & ~Filters.command, registrar_por_texto)) # Añadir a application
+    application.add_handler(MessageHandler(filters.text & ~filters.command, registrar_por_texto)) # Añadir a application
     
     # Otros comandos
     application.add_handler(CommandHandler("ayuda", ayuda)) # Añadir a application
