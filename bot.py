@@ -78,25 +78,19 @@ def conectar_google_sheets():
              "https://www.googleapis.com/auth/spreadsheets",
              "https://www.googleapis.com/auth/drive.file",
              "https://www.googleapis.com/auth/drive"]
+
+    credentials_json_str = os.getenv('GOOGLE_CREDENTIALS_JSON') # El nombre de la variable que usaste en Render
+
+    if not credentials_json_str:
+        logger.error("¡La variable de entorno 'GOOGLE_CREDENTIALS_JSON' no está configurada o está vacía!")
+        logger.error("Asegúrate de haber pegado el contenido completo del JSON de la clave de servicio en Render.")
+        return None
     
-    # Ruta al archivo de credenciales
-    credentials_path = "credenciales_google.json"
-    
-    try:
-        # Verificar si el archivo existe
-        import os
-        if not os.path.exists(credentials_path):
-            logger.error(f"¡El archivo de credenciales no existe en la ruta: {os.path.abspath(credentials_path)}!")
-            return None
-            
-        logger.info(f"Intentando conectar con el archivo de credenciales: {os.path.abspath(credentials_path)}")
-        
-        # Intentar leer el archivo
-        with open(credentials_path, 'r') as f:
-            logger.info("Archivo de credenciales encontrado y leído correctamente")
-        
-        creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, scope)
-        logger.info("Credenciales cargadas correctamente")
+   try:
+        # Cargar las credenciales desde la cadena JSON de la variable de entorno
+        creds_dict = json.loads(credentials_json_str)
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        logger.info("Credenciales cargadas correctamente desde la variable de entorno.")
         
         client = gspread.authorize(creds)
         logger.info("Cliente autorizado correctamente")
