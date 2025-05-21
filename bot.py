@@ -428,7 +428,7 @@ async def ayuda(update: Update, context: CallbackContext) -> None:
         "Puedes escribir directamente en este formato:\n"
         "TIPO MONTO CONCEPTO\n\n"
         "*Ejemplos:*\n"
-        "• INGRESO 1500 SUELDO DE ESPOSO\n"
+        "• INGRESO 1500 SUELDO\n"
         "• GASTO 50 ALIMENTOS\n",
         parse_mode='Markdown'
     )
