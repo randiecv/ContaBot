@@ -451,7 +451,7 @@ def error(update: Update, context: CallbackContext) -> None:
 def main() -> None:
     """Función principal"""
     # Configura el token de tu bot
-    TOKEN = "TU_TOKEN_DE_TELEGRAM"
+    TOKEN = "7423212779:AAEek2m6ZHUsZzpMxOhRz8QXpQXr0ldt5Ww"
     
     updater = Updater(TOKEN)
     dispatcher = updater.dispatcher
