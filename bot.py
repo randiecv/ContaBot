@@ -25,7 +25,7 @@ CONCEPTOS_INGRESOS = [
     "GRATIFICACIÓN",
     "AFP",
     "VENTA DE PRODUCTOS",
-    "EXTRAS",
+    "MANICURE",
     "COBRO DE DEUDAS",
     "REGALOS",
     "OTROS"
