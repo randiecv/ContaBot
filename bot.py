@@ -27,6 +27,7 @@ CONCEPTOS_INGRESOS = [
     "VENTA DE PRODUCTOS",
     "EXTRAS",
     "COBRO DE DEUDAS",
+    "REGALOS",
     "OTROS"
 ]
 
