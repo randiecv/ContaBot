@@ -10,6 +10,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import os
 import json # Necesario para cargar las credenciales de Google Sheets desde JSON string
+import google.generativeai as genai
+
 
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
