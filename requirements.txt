@@ -23,5 +23,5 @@ tornado==6.2
 tzdata==2025.2
 tzlocal==5.1
 urllib3==1.26.15
-google-generativeai
-Pillow
+google-generativeai==0.8.5
+Pillow==10.3.0
