@@ -23,3 +23,5 @@ tornado==6.2
 tzdata==2025.2
 tzlocal==5.1
 urllib3==1.26.15
+psycopg2-binary==2.9.7
+python-dotenv==1.0.0
