@@ -323,6 +323,8 @@ async def confirmar(update: Update, context: CallbackContext) -> int:
     
     return ConversationHandler.END
 
+gemini_text_model = genai.GenerativeModel('gemini-pro')
+
 async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
     """
     Procesa mensajes de texto usando Gemini para extraer información.
