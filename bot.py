@@ -328,8 +328,6 @@ async def confirmar(update: Update, context: CallbackContext) -> int:
     
     return ConversationHandler.END
 
-gemini_text_model = genai.GenerativeModel('gemini-pro')
-
 async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
     """
     Procesa mensajes de texto usando Gemini para extraer información.
@@ -429,8 +427,6 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
     
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
-
-gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
 
 async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -> None:
     user = update.effective_user
@@ -555,6 +551,14 @@ def main() -> None:
     # Puedes definir el modelo aquí o en la función donde lo uses
     model_text = genai.GenerativeModel('gemini-pro') 
     model_vision = genai.GenerativeModel('gemini-pro-vision')
+
+    gemini_text_model = genai.GenerativeModel('gemini-pro')
+
+    # Para el modelo de visión, solo inicializa si ENABLE_RECEIPT_PROCESSING está activado
+    if os.getenv("ENABLE_RECEIPT_PROCESSING", "False").lower() == "true":
+        gemini_vision_model = genai.GenerativeModel('gemini-pro-vision') [cite: 162]
+    else:
+        gemini_vision_model = None # Asegurarse de que sea None si no se usa
 
     # 2. Obtener el puerto que Render asigna a tu aplicación (OBLIGATORIO para Web Services)
     PORT = int(os.environ.get("PORT", "8080")) # Default a 8080 si no se especifica (aunque Render lo debería dar)
