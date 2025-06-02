@@ -377,6 +377,17 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         
         extracted_data = json.loads(response_text)
         
+        fecha_gemini = extracted_data.get('fecha', 'actual')
+        if fecha_gemini == 'actual':
+            fecha_registro = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        else:    
+            try:
+                # Validar formato de fecha
+                datetime.strptime(fecha_gemini, "%d/%m/%Y")
+                fecha_registro = fecha_gemini + " " + datetime.now().strftime("%H:%M:%S")
+            except:
+                fecha_registro = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
         # Verificar si Gemini reportó un error de monto
         if "error" in extracted_data:
             await update.message.reply_text(f"❌ {extracted_data['error']}. Por favor, asegúrate de incluir un monto válido.")
@@ -406,11 +417,10 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         # Registrar en Google Sheets
         sheet = conectar_google_sheets()
         if sheet:
-            fecha = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
             mes = datetime.now().strftime("%B %Y")
             
             sheet.append_row([
-                fecha,
+                fecha_registro,
                 user.first_name,
                 tipo,
                 categoria,
