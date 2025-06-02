@@ -364,7 +364,7 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         
         # Generar contenido con Gemini
         # temp = 0.2 para respuestas más determinísticas, menos creativas
-        response = await gemini_text_model.generate_content(prompt, generation_config={"temperature": 0.2})
+        response = gemini_text_model.generate_content(prompt, generation_config={"temperature": 0.2})
         
         # Extraer el texto de la respuesta y cargarlo como JSON
         # A veces Gemini puede añadir texto extra, intentamos limpiar si es necesario
@@ -448,7 +448,7 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
             img
         ]
 
-        response = await gemini_vision_model.generate_content(prompt_parts)
+        response = gemini_vision_model.generate_content(prompt_parts)
 
         # Limpiar y parsear la respuesta JSON de Gemini
         response_text = response.text.strip().replace("```json", "").replace("```", "")
@@ -534,6 +534,7 @@ async def error(update: Update, context: CallbackContext) -> None:
 def main() -> None:
     """Función principal"""
     # --- CAMBIOS AQUÍ para configurar Webhooks ---
+    global gemini_text_model, gemini_vision_model
 
     # 1. Obtener TOKEN del bot de variables de entorno (OBLIGATORIO para seguridad)
     TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -552,10 +553,17 @@ def main() -> None:
     logger.info(f"GEMINI_API_KEY cargada (solo los primeros 5 caracteres): {GEMINI_API_KEY[:5]}*****")
     # --- FIN DE LA LÍNEA DE VERIFICACIÓN ---
     # Puedes definir el modelo aquí o en la función donde lo uses
-    model_text = genai.GenerativeModel('gemini-pro') 
-    model_vision = genai.GenerativeModel('gemini-pro-vision')
+    #model_text = genai.GenerativeModel('gemini-pro') 
+    #model_vision = genai.GenerativeModel('gemini-pro-vision')
+    #gemini_text_model = genai.GenerativeModel('gemini-pro')
 
     gemini_text_model = genai.GenerativeModel('gemini-pro')
+    
+    if os.getenv("ENABLE_RECEIPT_PROCESSING", "False").lower() == "true":
+        gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
+    else:
+        gemini_vision_model = None
+
 
     # Para el modelo de visión, solo inicializa si ENABLE_RECEIPT_PROCESSING está activado
     if os.getenv("ENABLE_RECEIPT_PROCESSING", "False").lower() == "true":
