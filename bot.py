@@ -346,6 +346,7 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
         - "monto": solo el número (flotante), si no se encuentra, usar 0.0
         - "concepto": la descripción del gasto/ingreso, debe ser uno de los siguientes si coincide: {", ".join(CONCEPTOS_INGRESOS + CONCEPTOS_GASTOS)}. Si no hay coincidencia exacta, usa la descripción más cercana o la que puedas inferir.
         - "categoria": "FIJO" o "VARIABLE". Intenta inferir si es fijo o variable basado en el concepto o la naturaleza de la transacción. Si no es claro, asume "VARIABLE".
+        - "fecha": si se menciona una fecha específica (ayer, lunes, 25/05, etc.), calcúlala y devuélvela en formato DD/MM/YYYY. Si no se menciona fecha, usa "actual"
 
         Si el monto no se puede determinar, devuelve un JSON con un campo "error": "Monto no válido".
 
@@ -358,6 +359,10 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
 
         Mensaje: "Compre ropa por 80"
         JSON: {{"tipo": "GASTO", "monto": 80.0, "concepto": "ROPA", "categoria": "VARIABLE"}}
+        
+        "Gasté 30 soles en pasajes ayer" -> {{"fecha": "01/06/2025", ...}}
+        "El lunes pagué 100 de luz" -> {{"fecha": "fecha_del_lunes", ...}}
+        "Compré ropa por 80" -> {{"fecha": "actual", ...}}
 
         Mensaje a analizar: "{user_message}"
         """
@@ -458,11 +463,12 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
         monto_recibo = float(extracted_data.get('monto_total', 0.0))
         
         # Obtener fecha de Gemini o usar fecha actual como fallback
-        fecha_gemini = extracted_data.get('fecha', '')
-        if fecha_gemini and len(fecha_gemini) > 5:  # Verificar que sea una fecha válida
-            fecha_recibo = fecha_gemini
+        fecha_gemini = extracted_data.get('fecha', 'actual')
+        if fecha_gemini == 'actual':
+            fecha_registro = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         else:
-            fecha_recibo = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            # Usar fecha de Gemini + hora actual
+            fecha_registro = fecha_gemini + " " + datetime.now().strftime("%H:%M:%S")
         
         categoria_recibo = extracted_data.get('categoria', 'Otros') # Fallback si Gemini no categoriza
 
@@ -477,7 +483,7 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
             categoria_final = "VARIABLE" # Por defecto, o intentar mapear la categoría de Gemini a tus CATEGORIAS
 
             sheet.append_row([
-                fecha_recibo,
+                fecha_registro,
                 user.first_name,
                 tipo_recibo,
                 categoria_final, # La categoría inferida por Gemini o un default
