@@ -549,9 +549,6 @@ def main() -> None:
     model_text = genai.GenerativeModel('gemini-pro') 
     model_vision = genai.GenerativeModel('gemini-pro-vision')
 
-    application.add_handler(MessageHandler(filters.PHOTO & ~filters.COMMAND, procesar_recibo_con_gemini))
-
-
     # 2. Obtener el puerto que Render asigna a tu aplicación (OBLIGATORIO para Web Services)
     PORT = int(os.environ.get("PORT", "8080")) # Default a 8080 si no se especifica (aunque Render lo debería dar)
 
@@ -587,6 +584,8 @@ def main() -> None:
     )
     
     application.add_handler(conv_handler) # Añadir a application
+    
+    application.add_handler(MessageHandler(filters.PHOTO & ~filters.COMMAND, procesar_recibo_con_gemini))
     
     # Otros comandos explícitos
     application.add_handler(CommandHandler("ayuda", ayuda))# Añadir a application
