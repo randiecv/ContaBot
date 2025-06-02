@@ -557,17 +557,17 @@ def main() -> None:
     #model_vision = genai.GenerativeModel('gemini-pro-vision')
     #gemini_text_model = genai.GenerativeModel('gemini-pro')
 
-    gemini_text_model = genai.GenerativeModel('gemini-pro')
+    gemini_text_model = genai.GenerativeModel('gemini-1.5-flash')
     
     if os.getenv("ENABLE_RECEIPT_PROCESSING", "False").lower() == "true":
-        gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
+        gemini_vision_model = genai.GenerativeModel('gemini-1.5-flash')
     else:
         gemini_vision_model = None
 
 
     # Para el modelo de visión, solo inicializa si ENABLE_RECEIPT_PROCESSING está activado
     if os.getenv("ENABLE_RECEIPT_PROCESSING", "False").lower() == "true":
-        gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
+        gemini_vision_model = genai.GenerativeModel('gemini-1.5-flash')
     else:
         gemini_vision_model = None # Asegurarse de que sea None si no se usa
 
