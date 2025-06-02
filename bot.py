@@ -494,7 +494,7 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
 
             await update.message.reply_text(
                 f"✅ Recibo analizado y registrado:\n\n"
-                f"📅 Fecha: {fecha_recibo}\n"
+                f"📅 Fecha: {fecha_registro}\n"
                 f"💰 Monto: S/. {monto_recibo}\n"
                 f"🏷️ Categoría sugerida: {categoria_recibo}\n"
                 f"Puedes usar /start para un registro más detallado."
