@@ -13,7 +13,6 @@ import json # Necesario para cargar las credenciales de Google Sheets desde JSON
 import google.generativeai as genai
 from PIL import Image # Necesitas Pillow para esto
 import io
-import asyncio # Asegúrate de importar asyncio al principio del archivo
 
 # **Importante:** Estas variables se inicializarán más tarde en main()
 # Las declaramos aquí para que sean globales y accesibles desde cualquier función.
@@ -532,7 +531,7 @@ async def error(update: Update, context: CallbackContext) -> None:
     if update.message:
         await update.message.reply_text("Ocurrió un error. Por favor, intenta de nuevo o contacta al administrador.")
 
-async def main() -> None:
+def main() -> None:
     """Función principal"""
     # --- CAMBIOS AQUÍ para configurar Webhooks ---
 
@@ -623,7 +622,7 @@ async def main() -> None:
     # En este contexto de main(), que no es async, python-telegram-bot
     # lo maneja internamente al llamar run_webhook que inicia el bucle de eventos.
     # Así que, por ahora, no es necesario 'await' aquí directamente.
-    await application.bot.set_webhook(url=None) # Desactivar webhook si existe uno configurado previamente
+    application.bot.set_webhook(url=None) # Desactivar webhook si existe uno configurado previamente
 
     # Configurar el nuevo webhook con la URL de Render
     # 'listen' debe ser "0.0.0.0" para que Render pueda enrutar el tráfico
@@ -640,4 +639,4 @@ async def main() -> None:
     logger.info(f"Escuchando en puerto: {PORT}")
 
 if __name__ == '__main__':
-    asyncio.run(main()) # <--- CAMBIA ESTO
+    main()
