@@ -11,7 +11,8 @@ from datetime import datetime
 import os
 import json # Necesario para cargar las credenciales de Google Sheets desde JSON string
 import google.generativeai as genai
-
+from PIL import Image # Necesitas Pillow para esto
+import io
 
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -323,66 +324,74 @@ async def confirmar(update: Update, context: CallbackContext) -> int:
     return ConversationHandler.END
 
 async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
-    """Procesa mensajes de texto con formato: TIPO MONTO CONCEPTO"""
-    text = update.message.text.upper()
-    user = update.effective_user
-    
+    """
+    Procesa mensajes de texto usando Gemini para extraer información.
+    """
+    user_message = update.message.text.upper() # Convertir a mayúsculas para consistencia con tus listas
+
+    # --- AQUI ES DONDE INTEGRARÁS GEMINI ---
     try:
-        parts = text.split()
+        # Definir el prompt para Gemini
+        # Queremos que Gemini extraiga el tipo, monto y concepto
+        # y categorice como FIJO o VARIABLE si es posible, o use un default.
+        # Le pedimos que nos devuelva un JSON para facilitar el parseo.
+        prompt = f"""
+        Analiza el siguiente mensaje para extraer la siguiente información en formato JSON:
+        - "tipo": "INGRESO" o "GASTO"
+        - "monto": solo el número (flotante), si no se encuentra, usar 0.0
+        - "concepto": la descripción del gasto/ingreso, debe ser uno de los siguientes si coincide: {", ".join(CONCEPTOS_INGRESOS + CONCEPTOS_GASTOS)}. Si no hay coincidencia exacta, usa la descripción más cercana o la que puedas inferir.
+        - "categoria": "FIJO" o "VARIABLE". Intenta inferir si es fijo o variable basado en el concepto o la naturaleza de la transacción. Si no es claro, asume "VARIABLE".
+
+        Si el monto no se puede determinar, devuelve un JSON con un campo "error": "Monto no válido".
+
+        Ejemplos de cómo debería ser el JSON:
+        Mensaje: "Gaste 30 soles en pasajes"
+        JSON: {{"tipo": "GASTO", "monto": 30.0, "concepto": "PASAJES", "categoria": "VARIABLE"}}
+
+        Mensaje: "Mi sueldo de 1500"
+        JSON: {{"tipo": "INGRESO", "monto": 1500.0, "concepto": "SUELDO", "categoria": "FIJO"}}
+
+        Mensaje: "Compre ropa por 80"
+        JSON: {{"tipo": "GASTO", "monto": 80.0, "concepto": "ROPA", "categoria": "VARIABLE"}}
+
+        Mensaje a analizar: "{user_message}"
+        """
         
-        # Verificar si el formato es correcto
-        if len(parts) < 3:
-            await update.message.reply_text(
-                "❌ Formato incorrecto. Usa: TIPO MONTO CONCEPTO\n"
-                "Ejemplo: GASTO 50 ALIMENTOS"
-            )
+        # Generar contenido con Gemini
+        # temp = 0.2 para respuestas más determinísticas, menos creativas
+        response = await gemini_text_model.generate_content(prompt, generation_config={"temperature": 0.2})
+        
+        # Extraer el texto de la respuesta y cargarlo como JSON
+        # A veces Gemini puede añadir texto extra, intentamos limpiar si es necesario
+        response_text = response.text.strip().replace("```json", "").replace("```", "")
+        
+        extracted_data = json.loads(response_text)
+        
+        # Verificar si Gemini reportó un error de monto
+        if "error" in extracted_data:
+            await update.message.reply_text(f"❌ {extracted_data['error']}. Por favor, asegúrate de incluir un monto válido.")
+            return
+
+        tipo = extracted_data.get('tipo', 'GASTO') # Default a GASTO si Gemini no lo infiere bien
+        monto = float(extracted_data.get('monto', 0.0))
+        concepto_encontrado = extracted_data.get('concepto', 'OTROS')
+        categoria = extracted_data.get('categoria', 'VARIABLE') # Default a VARIABLE
+
+        user = update.effective_user
+
+        # Validaciones básicas que aún pueden ser útiles después de Gemini
+        if monto <= 0:
+            await update.message.reply_text("❌ El monto debe ser mayor que cero.")
             return
         
-        tipo = parts[0]
-        if tipo not in TIPOS:
-            await update.message.reply_text(f"❌ El tipo debe ser INGRESO o GASTO. Recibido: {tipo}")
+        if tipo not in TIPOS: # Asegurarse que Gemini devolvió un tipo válido
+            await update.message.reply_text(f"❌ No pude determinar si es INGRESO o GASTO. Recibí: {tipo}. Por favor, sé más específico o usa /start.")
             return
         
-        try:
-            monto = float(parts[1].replace(',', '.'))
-            if monto <= 0:
-                await update.message.reply_text("❌ El monto debe ser mayor que cero.")
-                return
-        except ValueError:
-            await update.message.reply_text("❌ El monto debe ser un número válido.")
-            return
-        
-        # Unir el resto como concepto
-        concepto_texto = " ".join(parts[2:])
-        
-        # Verificar si el concepto existe en las listas predefinidas
-        lista_conceptos = CONCEPTOS_INGRESOS if tipo == "INGRESO" else CONCEPTOS_GASTOS
-        
-        # Buscar el mejor concepto que coincida
-        concepto_encontrado = None
-        for concepto in lista_conceptos:
-            if concepto_texto in concepto or concepto in concepto_texto:
-                concepto_encontrado = concepto
-                break
-        
-        if not concepto_encontrado:
-            # Si no se encuentra una coincidencia exacta, mostrar opciones
-            await update.message.reply_text(
-                f"❌ No se encontró el concepto '{concepto_texto}'. Por favor, usa el comando /start para registrar."
-            )
-            return
-        
-        # Categoría por defecto (se puede mejorar con un algoritmo más inteligente)
-        categoria = "VARIABLE"  # Por defecto
-        
-        # Algunos conceptos que suelen ser fijos
-        conceptos_fijos = ["CUOTA DEPARTAMENTO", "INTERNET", "LUZ", "MANTENIMIENTO", "GAS", "PLAN DE CELULAR", 
-                         "SUELDO", "AHORROS", "DIEZMO","OFRENDA"]
-        
-        for cf in conceptos_fijos:
-            if cf in concepto_encontrado:
-                categoria = "FIJO"
-                break
+        if categoria not in CATEGORIAS: # Asegurarse que Gemini devolvió una categoría válida
+             categoria = "VARIABLE" # Fallback si Gemini no devuelve FIJO o VARIABLE
+
+        # --- FIN DE LA INTEGRACIÓN DE GEMINI ---
         
         # Registrar en Google Sheets
         sheet = conectar_google_sheets()
@@ -413,6 +422,77 @@ async def registrar_por_texto(update: Update, context: CallbackContext) -> None:
     
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
+
+gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
+
+async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -> None:
+    user = update.effective_user
+    await update.message.reply_text("Detecté una imagen. Intentando analizarla como un recibo...")
+
+    try:
+        # Descargar la imagen
+        photo_file = await update.message.photo[-1].get_file() # Obtener la foto de mayor resolución
+        photo_bytes = await photo_file.download_as_bytearray()
+
+        # Convertir a formato de imagen para Pillow y luego para Gemini
+        # Esto es necesario porque Gemini espera un objeto Image de PIL
+        img = Image.open(io.BytesIO(photo_bytes))
+
+        # Prompt para Gemini Vision
+        # Aquí la clave es ser muy específico sobre qué quieres extraer del recibo
+        prompt_parts = [
+            "Extrae el monto total, la fecha, y sugiere una categoría de gasto (ej. 'Alimentos', 'Transporte', 'Servicios', 'Otros') de este recibo. Devuelve la información en formato JSON. Si no puedes encontrar una categoría, usa 'Otros'. Si no puedes encontrar el monto total, usa 0.0.",
+            img
+        ]
+
+        response = await gemini_vision_model.generate_content(prompt_parts)
+
+        # Limpiar y parsear la respuesta JSON de Gemini
+        response_text = response.text.strip().replace("```json", "").replace("```", "")
+        extracted_data = json.loads(response_text)
+
+        # Usar los datos extraídos por Gemini
+        monto_recibo = float(extracted_data.get('monto_total', 0.0))
+        fecha_recibo = extracted_data.get('fecha', datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+        categoria_recibo = extracted_data.get('categoria', 'Otros') # Fallback si Gemini no categoriza
+
+        # Aquí podrías preguntar al usuario para confirmar o ajustar los datos
+        # Por simplicidad, lo guardamos directamente
+
+        sheet = conectar_google_sheets()
+        if sheet:
+            # Asumimos que los recibos son gastos, pero Gemini podría inferirlo si el prompt es más complejo
+            tipo_recibo = "GASTO" 
+            # Podrías tener una lógica más sofisticada para la categoría Fija/Variable
+            categoria_final = "VARIABLE" # Por defecto, o intentar mapear la categoría de Gemini a tus CATEGORIAS
+
+            sheet.append_row([
+                fecha_recibo,
+                user.first_name,
+                tipo_recibo,
+                categoria_final, # La categoría inferida por Gemini o un default
+                f"Gasto por recibo: {categoria_recibo}", # Una descripción más detallada
+                monto_recibo,
+                datetime.strptime(fecha_recibo.split(' ')[0], "%d/%m/%Y").strftime("%B %Y") if ' ' in fecha_recibo else datetime.now().strftime("%B %Y") # Extrae mes y año
+            ])
+
+            await update.message.reply_text(
+                f"✅ Recibo analizado y registrado:\n\n"
+                f"📅 Fecha: {fecha_recibo}\n"
+                f"💰 Monto: S/. {monto_recibo}\n"
+                f"🏷️ Categoría sugerida: {categoria_recibo}\n"
+                f"Puedes usar /start para un registro más detallado."
+            )
+        else:
+            await update.message.reply_text("❌ No se pudo conectar con la hoja de cálculo para registrar el recibo.")
+
+    except json.JSONDecodeError:
+        logger.error(f"Error al decodificar JSON de Gemini Vision: {response.text}")
+        await update.message.reply_text("❌ No pude extraer la información del recibo. ¿Es una imagen clara de un recibo?")
+    except Exception as e:
+        logger.error(f"Error al procesar recibo con Gemini: {e}")
+        await update.message.reply_text(f"❌ Ocurrió un error al procesar la imagen: {e}")
+
 
 async def cancelar(update: Update, context: CallbackContext) -> int:
     """Cancela la conversación"""
@@ -459,6 +539,18 @@ def main() -> None:
         logger.error("Por favor, configura tu token de bot de Telegram en Render como una variable de entorno.")
         # Es crucial que el bot no se inicie sin el token
         raise ValueError("TELEGRAM_BOT_TOKEN no configurado.")
+    
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        logger.error("Error: La variable de entorno GEMINI_API_KEY no está configurada.")
+        raise ValueError("GEMINI_API_KEY no configurada.")
+    genai.configure(api_key=GEMINI_API_KEY)
+    # Puedes definir el modelo aquí o en la función donde lo uses
+    model_text = genai.GenerativeModel('gemini-pro') 
+    model_vision = genai.GenerativeModel('gemini-pro-vision')
+
+    application.add_handler(MessageHandler(filters.PHOTO & ~filters.COMMAND, procesar_recibo_con_gemini))
+
 
     # 2. Obtener el puerto que Render asigna a tu aplicación (OBLIGATORIO para Web Services)
     PORT = int(os.environ.get("PORT", "8080")) # Default a 8080 si no se especifica (aunque Render lo debería dar)
@@ -496,11 +588,15 @@ def main() -> None:
     
     application.add_handler(conv_handler) # Añadir a application
     
+    # Otros comandos explícitos
+    application.add_handler(CommandHandler("ayuda", ayuda))# Añadir a application
+    application.add_handler(CommandHandler("cancelar", cancelar)) # También como comando directo fuera de la conv.
+
+    # Manejador para fotos (si lo implementas)
+    application.add_handler(MessageHandler(filters.PHOTO & ~filters.COMMAND, procesar_recibo_con_gemini))
+
     # Manejador para registro por texto
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, registrar_por_texto)) # Añadir a application
-    
-    # Otros comandos
-    application.add_handler(CommandHandler("ayuda", ayuda)) # Añadir a application
     
     # Manejador de errores
     application.add_error_handler(error) # Añadir a application
