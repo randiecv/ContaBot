@@ -556,7 +556,7 @@ def main() -> None:
 
     # Para el modelo de visión, solo inicializa si ENABLE_RECEIPT_PROCESSING está activado
     if os.getenv("ENABLE_RECEIPT_PROCESSING", "False").lower() == "true":
-        gemini_vision_model = genai.GenerativeModel('gemini-pro-vision') [cite: 162]
+        gemini_vision_model = genai.GenerativeModel('gemini-pro-vision')
     else:
         gemini_vision_model = None # Asegurarse de que sea None si no se usa
 
