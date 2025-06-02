@@ -14,6 +14,11 @@ import google.generativeai as genai
 from PIL import Image # Necesitas Pillow para esto
 import io
 
+# **Importante:** Estas variables se inicializarán más tarde en main()
+# Las declaramos aquí para que sean globales y accesibles desde cualquier función.
+gemini_text_model = None
+gemini_vision_model = None # Si vas a usar gemini-pro-vision
+
 # Configuración de logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
