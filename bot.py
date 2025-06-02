@@ -444,7 +444,7 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
         # Prompt para Gemini Vision
         # Aquí la clave es ser muy específico sobre qué quieres extraer del recibo
         prompt_parts = [
-            "Extrae el monto total, la fecha, y sugiere una categoría de gasto (ej. 'Alimentos', 'Transporte', 'Servicios', 'Otros') de este recibo. Devuelve la información en formato JSON. Si no puedes encontrar una categoría, usa 'Otros'. Si no puedes encontrar el monto total, usa 0.0.",
+            "Extrae el monto total, la fecha (en formato DD/MM/YYYY), y sugiere una categoría de gasto de este recibo. Si no encuentras una fecha válida, usa 'sin_fecha'. Devuelve la información en formato JSON.",
             img
         ]
 
@@ -456,7 +456,14 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
 
         # Usar los datos extraídos por Gemini
         monto_recibo = float(extracted_data.get('monto_total', 0.0))
-        fecha_recibo = extracted_data.get('fecha', datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
+        
+        # Obtener fecha de Gemini o usar fecha actual como fallback
+        fecha_gemini = extracted_data.get('fecha', '')
+        if fecha_gemini and len(fecha_gemini) > 5:  # Verificar que sea una fecha válida
+            fecha_recibo = fecha_gemini
+        else:
+            fecha_recibo = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        
         categoria_recibo = extracted_data.get('categoria', 'Otros') # Fallback si Gemini no categoriza
 
         # Aquí podrías preguntar al usuario para confirmar o ajustar los datos
@@ -476,7 +483,7 @@ async def procesar_recibo_con_gemini(update: Update, context: CallbackContext) -
                 categoria_final, # La categoría inferida por Gemini o un default
                 f"Gasto por recibo: {categoria_recibo}", # Una descripción más detallada
                 monto_recibo,
-                datetime.strptime(fecha_recibo.split(' ')[0], "%d/%m/%Y").strftime("%B %Y") if ' ' in fecha_recibo else datetime.now().strftime("%B %Y") # Extrae mes y año
+                datetime.now().strftime("%B %Y")  # Usar siempre la fecha actual para el mes
             ])
 
             await update.message.reply_text(
