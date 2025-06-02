@@ -548,6 +548,9 @@ def main() -> None:
         logger.error("Error: La variable de entorno GEMINI_API_KEY no está configurada.")
         raise ValueError("GEMINI_API_KEY no configurada.")
     genai.configure(api_key=GEMINI_API_KEY)
+     # --- AÑADE ESTA LÍNEA PARA VERIFICAR ---
+    logger.info(f"GEMINI_API_KEY cargada (solo los primeros 5 caracteres): {GEMINI_API_KEY[:5]}*****")
+    # --- FIN DE LA LÍNEA DE VERIFICACIÓN ---
     # Puedes definir el modelo aquí o en la función donde lo uses
     model_text = genai.GenerativeModel('gemini-pro') 
     model_vision = genai.GenerativeModel('gemini-pro-vision')
