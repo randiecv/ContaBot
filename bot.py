@@ -278,7 +278,6 @@ async def procesar_onboarding_inicial(update: Update, context: CallbackContext) 
             f"🎯 Prioridades detectadas: {', '.join(perfil.get('prioridades', []))}\n\n"
             f"¿Es correcto este análisis?",
             reply_markup=reply_markup,
-            parse_mode='Markdown'
         )
         
         return ONBOARDING_ROLE
