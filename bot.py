@@ -272,7 +272,7 @@ async def procesar_onboarding_inicial(update: Update, context: CallbackContext) 
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await update.message.reply_text(
-            f"📊 **Análisis de tu perfil:**\n\n"
+            f"📊 Análisis de tu perfil:\n\n"
             f"👤 Te veo como: {rol_texto}\n"
             f"💰 Ingresos estimados: S/. {perfil.get('ingresos_estimados', 'No especificado')}\n"
             f"🎯 Prioridades detectadas: {', '.join(perfil.get('prioridades', []))}\n\n"
