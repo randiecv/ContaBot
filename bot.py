@@ -414,7 +414,6 @@ async def ingresar_monto(update: Update, context: CallbackContext) -> int:
             f"💰 Monto: S/. {monto}\n\n"
             f"¿Confirmas este registro?",
             reply_markup=reply_markup,
-            parse_mode='Markdown'
         )
         
         return CONFIRMAR
