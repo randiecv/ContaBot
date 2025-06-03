@@ -14,6 +14,13 @@ import google.generativeai as genai
 from PIL import Image # Necesitas Pillow para esto
 import io
 
+# Estructura para almacenar datos de usuarios
+users_db = {}  # Temporal, luego será PostgreSQL
+families_db = {}  # Temporal
+
+# Nuevos estados para el onboarding
+ONBOARDING_START, ONBOARDING_ROLE, ONBOARDING_INCOME, ONBOARDING_GOALS = range(6, 10)
+
 # **Importante:** Estas variables se inicializarán más tarde en main()
 # Las declaramos aquí para que sean globales y accesibles desde cualquier función.
 gemini_text_model = None
@@ -130,21 +137,35 @@ def conectar_google_sheets():
         return None
 
 # Comandos
-async def start_command(update: Update, context: CallbackContext) -> int: # Renombrado para evitar conflicto con main.py/start
+async def start_command(update: Update, context: CallbackContext) -> int:
     user = update.effective_user
-    keyboard = [
-        [InlineKeyboardButton("Registrar movimiento", callback_data='registrar')],
-        [InlineKeyboardButton("Ver último registro", callback_data='ver_ultimo')]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    telegram_id = user.id
     
-    await update.message.reply_text(
-        f'Hola {user.first_name}! Soy el bot de economía familiar.\n\n'
-        f'¿Qué deseas hacer?',
-        reply_markup=reply_markup
-    )
-    
-    return ELEGIR_ACCION
+    # Verificar si el usuario ya existe
+    if telegram_id in users_db:
+        # Usuario existente - menú normal
+        keyboard = [
+            [InlineKeyboardButton("Registrar movimiento", callback_data='registrar')],
+            [InlineKeyboardButton("Ver último registro", callback_data='ver_ultimo')],
+            [InlineKeyboardButton("Ver mi perfil", callback_data='ver_perfil')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            f'¡Hola de nuevo {user.first_name}! ¿Qué deseas hacer hoy?',
+            reply_markup=reply_markup
+        )
+        return ELEGIR_ACCION
+    else:
+        # Usuario nuevo - iniciar onboarding
+        await update.message.reply_text(
+            f'¡Hola {user.first_name}! 👋\n\n'
+            f'Soy tu asistente de economía familiar inteligente. '
+            f'Para comenzar, necesito conocerte mejor.\n\n'
+            f'¿Podrías contarme brevemente sobre tu situación familiar y financiera? '
+            f'Por ejemplo: si vives solo/a, en pareja, con hijos, tus ingresos aproximados, etc.'
+        )
+        return ONBOARDING_START
 
 async def elegir_accion(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
@@ -192,6 +213,120 @@ async def elegir_accion(update: Update, context: CallbackContext) -> int:
             await query.edit_message_text(f"Error al obtener el último registro: {e}")
         
         return ConversationHandler.END
+
+async def procesar_onboarding_inicial(update: Update, context: CallbackContext) -> int:
+    user = update.effective_user
+    user_input = update.message.text
+    
+    try:
+        # Prompt para Gemini para analizar el perfil del usuario
+        prompt = f"""
+        Analiza la siguiente información de un nuevo usuario de una app de economía familiar y extrae:
+        
+        Información del usuario: "{user_input}"
+        
+        Devuelve un JSON con:
+        - "rol_familiar": "adulto_solo", "pareja_sin_hijos", "padre_familia", "madre_familia", "adolescente", "estudiante"
+        - "ingresos_estimados": número estimado de ingresos mensuales (0 si no se menciona)
+        - "prioridades": array de máximo 3 prioridades financieras detectadas ["ahorro", "control_gastos", "presupuesto", "deudas", etc.]
+        - "categorias_relevantes": array de categorías de gasto que parecen relevantes para esta persona
+        - "sugerencias_presupuesto": objeto con presupuestos sugeridos por categoría
+        - "necesita_configuracion_familiar": true/false si parece que hay más miembros de familia
+        
+        Ejemplo de respuesta:
+        {{
+            "rol_familiar": "padre_familia",
+            "ingresos_estimados": 2500,
+            "prioridades": ["control_gastos", "ahorro", "educacion_hijos"],
+            "categorias_relevantes": ["ALIMENTOS", "EDUCACION", "VIVIENDA"],
+            "sugerencias_presupuesto": {{"ALIMENTOS": 600, "ENTRETENIMIENTO": 200}},
+            "necesita_configuracion_familiar": true
+        }}
+        """
+        
+        response = gemini_text_model.generate_content(prompt, generation_config={"temperature": 0.3})
+        response_text = response.text.strip().replace("```json", "").replace("```", "")
+        perfil = json.loads(response_text)
+        
+        # Guardar temporalmente el perfil
+        usuario_data[user.id] = {
+            'perfil_inicial': perfil,
+            'telegram_id': user.id,
+            'nombre': user.first_name
+        }
+        
+        # Mostrar resumen y pedir confirmación
+        rol_texto = {
+            "adulto_solo": "adulto viviendo solo/a",
+            "pareja_sin_hijos": "en pareja sin hijos",
+            "padre_familia": "padre de familia",
+            "madre_familia": "madre de familia",
+            "adolescente": "adolescente",
+            "estudiante": "estudiante"
+        }.get(perfil.get('rol_familiar', 'adulto_solo'), 'usuario')
+        
+        keyboard = [
+            [InlineKeyboardButton("✅ Correcto, continuar", callback_data='confirmar_perfil')],
+            [InlineKeyboardButton("❌ Corregir información", callback_data='corregir_perfil')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            f"📊 **Análisis de tu perfil:**\n\n"
+            f"👤 Te veo como: {rol_texto}\n"
+            f"💰 Ingresos estimados: S/. {perfil.get('ingresos_estimados', 'No especificado')}\n"
+            f"🎯 Prioridades detectadas: {', '.join(perfil.get('prioridades', []))}\n\n"
+            f"¿Es correcto este análisis?",
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+        
+        return ONBOARDING_ROLE
+        
+    except Exception as e:
+        await update.message.reply_text(
+            "Hubo un problema analizando tu información. "
+            "¿Podrías ser más específico sobre tu situación familiar e ingresos?"
+        )
+        return ONBOARDING_START
+
+async def confirmar_perfil_callback(update: Update, context: CallbackContext) -> int:
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == 'confirmar_perfil':
+        # Crear usuario en la "base de datos" temporal
+        user_id = query.from_user.id
+        perfil = usuario_data[user_id]['perfil_inicial']
+        
+        users_db[user_id] = {
+            'telegram_id': user_id,
+            'nombre': query.from_user.first_name,
+            'rol_familiar': perfil.get('rol_familiar'),
+            'ingresos_estimados': perfil.get('ingresos_estimados', 0),
+            'prioridades': perfil.get('prioridades', []),
+            'fecha_registro': datetime.now().isoformat(),
+            'familia_id': None  # Por ahora sin familia
+        }
+        
+        await query.edit_message_text(
+            "✅ ¡Perfil creado exitosamente!\n\n"
+            "Ya puedes empezar a registrar tus movimientos financieros. "
+            "Usa /start para acceder al menú principal."
+        )
+        
+        # Limpiar datos temporales
+        if user_id in usuario_data:
+            del usuario_data[user_id]
+            
+        return ConversationHandler.END
+    
+    else:  # corregir_perfil
+        await query.edit_message_text(
+            "Por favor, describe nuevamente tu situación familiar y financiera "
+            "con más detalles para que pueda entenderte mejor:"
+        )
+        return ONBOARDING_START
 
 async def elegir_tipo(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
@@ -623,7 +758,10 @@ def main() -> None:
             ELEGIR_CATEGORIA: [CallbackQueryHandler(elegir_categoria)],
             ELEGIR_CONCEPTO: [CallbackQueryHandler(elegir_concepto)],
             INGRESAR_MONTO: [MessageHandler(filters.TEXT & ~filters.COMMAND, ingresar_monto)],
-            CONFIRMAR: [CallbackQueryHandler(confirmar)]
+            CONFIRMAR: [CallbackQueryHandler(confirmar)],
+            # Nuevos estados de onboarding
+            ONBOARDING_START: [MessageHandler(filters.TEXT & ~filters.COMMAND, procesar_onboarding_inicial)],
+            ONBOARDING_ROLE: [CallbackQueryHandler(confirmar_perfil_callback)],
         },
         fallbacks=[CommandHandler('cancelar', cancelar)]
     )
