@@ -284,11 +284,13 @@ async def procesar_onboarding_inicial(update: Update, context: CallbackContext) 
         return ONBOARDING_ROLE
         
     except Exception as e:
+        logger.error(f"Error en onboarding: {e}")
+        logger.error(f"Respuesta de Gemini: {response.text if 'response' in locals() else 'No response'}")
         await update.message.reply_text(
-            "Hubo un problema analizando tu información. "
-            "¿Podrías ser más específico sobre tu situación familiar e ingresos?"
-        )
-        return ONBOARDING_START
+        f"Error técnico: {str(e)[:100]}... "
+        "Por favor intenta de nuevo o usa /start para el menú normal."
+    )
+    return ONBOARDING_START
 
 async def confirmar_perfil_callback(update: Update, context: CallbackContext) -> int:
     query = update.callback_query
