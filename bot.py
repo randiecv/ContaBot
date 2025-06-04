@@ -213,6 +213,21 @@ async def elegir_accion(update: Update, context: CallbackContext) -> int:
             await query.edit_message_text(f"Error al obtener el último registro: {e}")
         
         return ConversationHandler.END
+    
+    elif query.data == 'ver_perfil':
+        user_id = query.from_user.id
+    if user_id in users_db:
+        perfil = users_db[user_id]
+        await query.edit_message_text(
+            f"👤 Mi Perfil:\n\n"
+            f"Nombre: {perfil['nombre']}\n"
+            f"Rol: {perfil['rol_familiar']}\n"
+            f"Ingresos: S/. {perfil['ingresos_estimados']}\n"
+            f"Prioridades: {', '.join(perfil['prioridades'])}"
+        )
+    else:
+        await query.edit_message_text("No se encontró tu perfil.")
+    return ConversationHandler.END
 
 async def procesar_onboarding_inicial(update: Update, context: CallbackContext) -> int:
     user = update.effective_user
